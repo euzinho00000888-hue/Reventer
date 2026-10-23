@@ -1,0 +1,14 @@
+{
+  "name": "Clean Links",
+  "description": "Remove rastreadores (utm, fbclid, gclid…) dos links que você envia.",
+  "authors": [
+    {
+      "name": "Reventer"
+    }
+  ],
+  "main": "index.js",
+  "hash": "cb0f99b5f71839073e54c726332196828ceab58b0a76e38f7d82e42357f105a8",
+  "vendetta": {
+    "icon": "ic_link"
+  }
+}

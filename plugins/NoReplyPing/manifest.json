@@ -1,0 +1,14 @@
+{
+  "name": "No Reply Ping",
+  "description": "Responder mensagens não menciona a pessoa por padrão.",
+  "authors": [
+    {
+      "name": "Reventer"
+    }
+  ],
+  "main": "index.js",
+  "hash": "6548e62dc8adbd738c625485716f244d913ed4bf156f3b37a8abd6a29bb92c79",
+  "vendetta": {
+    "icon": "ic_reply_24px"
+  }
+}

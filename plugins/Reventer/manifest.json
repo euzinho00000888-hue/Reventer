@@ -1,0 +1,14 @@
+{
+  "name": "Reventer",
+  "description": "Converse com modelos de IA da OpenRouter direto do Discord (/ai). Configure a API key na chave de fenda.",
+  "authors": [
+    {
+      "name": "Reventer"
+    }
+  ],
+  "main": "index.js",
+  "hash": "efe555a397d77802395e797d4b24dc53d74d6687bbfb6f8dfd57b8c4a0d4cf66",
+  "vendetta": {
+    "icon": "ic_message_edit"
+  }
+}

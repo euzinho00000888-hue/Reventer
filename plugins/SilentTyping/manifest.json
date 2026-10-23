@@ -1,0 +1,14 @@
+{
+  "name": "Silent Typing",
+  "description": "Não mostra para os outros que você está digitando.",
+  "authors": [
+    {
+      "name": "Reventer"
+    }
+  ],
+  "main": "index.js",
+  "hash": "0179c5911e6f04ac48faedcdb8a47fb370e75948350d601102682d65661aff43",
+  "vendetta": {
+    "icon": "ic_message"
+  }
+}
