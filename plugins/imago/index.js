@@ -81,13 +81,34 @@
     );
   }
 
+  const ICON = "data:image/png;base64,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";
+  const iconColor = () => {
+    try {
+      const r = findByProps("resolveSemanticColor");
+      const sc = ui.semanticColors;
+      if (r && sc && sc.INTERACTIVE_NORMAL) {
+        const theme = findByProps("theme") ;
+        return r.resolveSemanticColor(theme && theme.theme ? theme.theme : "dark", sc.INTERACTIVE_NORMAL);
+      }
+    } catch {}
+    return "#b5bac1";
+  };
+
   function ImagoButton() {
     const [open, setOpen] = useState(false);
+    const [ok, setOk] = useState(false);
+    const ref = React.useRef(null);
     const pick = useCallback(u => { setOpen(false); sendImage(u); }, []);
-    return h(View, null,
+    // só aparece se estiver na barra real (cópias soltas no canto esquerdo ficam invisíveis)
+    const check = () => {
+      setTimeout(() => {
+        try { ref.current.measureInWindow((x, y) => setOk(x > 100 && y > 0)); } catch { setOk(true); }
+      }, 50);
+    };
+    return h(View, { ref, onLayout: check, style: { opacity: ok ? 1 : 0 }, pointerEvents: ok ? "auto" : "none" },
       h(Pressable, { onPress: () => setOpen(true), hitSlop: 6, style: { padding: 6 }, accessibilityLabel: "Imago" },
-        h(Text, { style: { fontSize: 20 } }, "🖼️")),
-      open ? h(Picker, { onPick: pick, onClose: () => setOpen(false) }) : null
+        h(Image, { source: { uri: ICON }, style: { width: 24, height: 24, tintColor: iconColor() } })),
+      open && ok ? h(Picker, { onPick: pick, onClose: () => setOpen(false) }) : null
     );
   }
 
@@ -117,6 +138,7 @@
     const target = TARGET_RE.test(own);
     if (/ChatInput/i.test(own)) note("ChatInput: " + own, labels.join(" , "));
     if (!hinted && !target) return ret;
+    if (els > 4 || labels.some(l => /reaction/i.test(l)) || /reaction/i.test(own)) return ret;
     if (labels.some((l, i) => kids[i] && kids[i].key === MARK)) return ret;
     note("container: " + own, labels.join(" , "));
     const copy = kids.slice();
