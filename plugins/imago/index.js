@@ -127,9 +127,10 @@
     const check = () => {
       [60, 400, 1200].forEach(ms => setTimeout(() => {
         try {
-          ref.current.measureInWindow((x, y) => {
+          ref.current.measureInWindow((x, y, w, hh) => {
             if (!x && !y) setOk(true);          // sem medida válida: mostra
-            else setOk(x > 100);
+            else if (!w || !hh) setOk(false);   // sem tamanho: cópia solta
+            else setOk(x >= 8 && y > 0);        // só esconde cópia colada no canto (0,0)
           });
         } catch { setOk(true); }
       }, ms));
