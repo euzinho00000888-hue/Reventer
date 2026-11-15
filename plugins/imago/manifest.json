@@ -1,0 +1,8 @@
+{
+  "name": "Imago",
+  "description": "Busca e envia imagens do Imago direto no chat, como o Tenor. Botão ao lado de presente, emoji e microfone.",
+  "authors": [{ "name": "Imago" }],
+  "main": "index.js",
+  "hash": "b0115bf094d5e4b5a24cab8487526e00c445a58cade05c954161f971fba15565",
+  "vendetta": { "icon": "ic_image" }
+}
