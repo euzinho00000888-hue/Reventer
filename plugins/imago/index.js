@@ -88,7 +88,8 @@
       const sc = ui.semanticColors;
       if (r && sc && sc.INTERACTIVE_NORMAL) {
         const theme = findByProps("theme") ;
-        return r.resolveSemanticColor(theme && theme.theme ? theme.theme : "dark", sc.INTERACTIVE_NORMAL);
+        const c = r.resolveSemanticColor(theme && theme.theme ? theme.theme : "dark", sc.INTERACTIVE_NORMAL);
+        if (typeof c === "string") return c;
       }
     } catch {}
     return "#b5bac1";
@@ -96,14 +97,19 @@
 
   function ImagoButton() {
     const [open, setOpen] = useState(false);
-    const [ok, setOk] = useState(false);
+    const [ok, setOk] = useState(true);
     const ref = React.useRef(null);
     const pick = useCallback(u => { setOpen(false); sendImage(u); }, []);
     // só aparece se estiver na barra real (cópias soltas no canto esquerdo ficam invisíveis)
     const check = () => {
-      setTimeout(() => {
-        try { ref.current.measureInWindow((x, y) => setOk(x > 100 && y > 0)); } catch { setOk(true); }
-      }, 50);
+      [60, 400, 1200].forEach(ms => setTimeout(() => {
+        try {
+          ref.current.measureInWindow((x, y) => {
+            if (!x && !y) setOk(true);          // sem medida válida: mostra
+            else setOk(x > 100);
+          });
+        } catch { setOk(true); }
+      }, ms));
     };
     return h(View, { ref, onLayout: check, style: { opacity: ok ? 1 : 0 }, pointerEvents: ok ? "auto" : "none" },
       h(Pressable, { onPress: () => setOpen(true), hitSlop: 6, style: { padding: 6 }, accessibilityLabel: "Imago" },
@@ -138,7 +144,7 @@
     const target = TARGET_RE.test(own);
     if (/ChatInput/i.test(own)) note("ChatInput: " + own, labels.join(" , "));
     if (!hinted && !target) return ret;
-    if (els > 4 || labels.some(l => /reaction/i.test(l)) || /reaction/i.test(own)) return ret;
+    if (labels.some(l => /reaction/i.test(l)) || /reaction/i.test(own)) return ret;
     if (labels.some((l, i) => kids[i] && kids[i].key === MARK)) return ret;
     note("container: " + own, labels.join(" , "));
     const copy = kids.slice();
