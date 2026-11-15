@@ -31,15 +31,38 @@
     return data.results || [];
   }
 
-  function sendImage(url) {
-    const chan = findByProps("getChannelId", "getLastSelectedChannelId");
-    const msgs = findByProps("sendMessage", "receiveMessage");
-    const channelId = chan && chan.getChannelId();
-    if (!msgs || !channelId) {
-      ui.toasts.showToast("Imago: não achei o canal.");
-      return;
+  const toast = m => { try { ui.toasts.showToast(m); } catch {} };
+
+  function currentChannel() {
+    let id;
+    try { const st = metro.findByStoreName && metro.findByStoreName("SelectedChannelStore"); id = st && st.getChannelId(); } catch {}
+    if (!id) {
+      try { const c = findByProps("getChannelId", "getLastSelectedChannelId"); id = c && c.getChannelId(); } catch {}
     }
-    msgs.sendMessage(channelId, { content: url, invalidEmojis: [], tts: false, validNonShortcutEmojis: [] });
+    return id;
+  }
+
+  async function sendImage(url) {
+    const channelId = currentChannel();
+    if (!channelId) return toast("Imago: não achei o canal.");
+    // 1) API REST do Discord
+    try {
+      const rest = findByProps("getAPIBaseURL", "post") || findByProps("post", "patch", "del");
+      if (rest) {
+        const nonce = String(Date.now() * 4194304 + Math.floor(Math.random() * 4194304));
+        await rest.post({ url: `/channels/${channelId}/messages`, body: { content: url, tts: false, flags: 0, nonce } });
+        return;
+      }
+    } catch (e) { console.error(TAG, "REST falhou", e); }
+    // 2) sendMessage interno
+    try {
+      const msgs = findByProps("sendMessage", "receiveMessage");
+      if (msgs) {
+        await msgs.sendMessage(channelId, { content: url, tts: false, invalidEmojis: [], validNonShortcutEmojis: [] }, undefined, {});
+        return;
+      }
+    } catch (e) { console.error(TAG, "sendMessage falhou", e); toast("Imago: erro ao enviar: " + ((e && e.message) || e)); return; }
+    toast("Imago: não achei como enviar a mensagem.");
   }
 
   function Picker({ onPick, onClose }) {
