@@ -6,8 +6,10 @@
   const { View, Text, TextInput, Pressable, Image, Modal, FlatList } = RN;
   const TAG = "[imago]";
   const MARK = "imago-button";
-  const TARGET_RE = /ChatInputActions|ChatInputButtons|ChatInputActionButtons|InputActions/i;
-  const HINT_RE = /gift|emoji|expression|voice|mic|record/i;
+  const TARGET_RE = /ChatInputActions|ChatInputButtons|ChatInputActionButtons|InputActions|ChatInputRight/i;
+  const HINT_RE = /gift|emoji|expression|voice|mic|record|sticker|present/i;
+  const dbg = new Map();
+  const note = (k, v) => { if (dbg.size < 60 && !dbg.has(k)) dbg.set(k, v); };
   const DEFAULT_BASE = "https://imago-gamma.vercel.app";
   const unpatches = [];
 
@@ -89,84 +91,52 @@
     );
   }
 
+  const tname = t => {
+    if (!t) return "";
+    if (typeof t === "string") return t;
+    return t.displayName || t.name || (t.type && (t.type.displayName || t.type.name)) || (t.render && (t.render.displayName || t.render.name)) || "";
+  };
   const label = el => {
-    const t = el && el.type;
     const p = (el && el.props) || {};
-    return `${(t && (t.displayName || t.name)) || ""}|${p.testID || ""}|${p.accessibilityLabel || ""}|${(el && el.key) || ""}`;
+    const ic = p.icon || p.source || p.name || "";
+    return `${tname(el && el.type)}|${p.testID || ""}|${p.accessibilityLabel || ""}|${(el && el.key) || ""}|${typeof ic === "string" || typeof ic === "number" ? ic : ""}`;
   };
   let logged = false;
 
-  // acha o container dos botões e põe o Imago antes do último (microfone)
-  function inject(node) {
-    if (!React.isValidElement(node)) return false;
-    const props = node.props || {};
-    const kids = props.children;
-    if (Array.isArray(kids)) {
-      const flat = kids.flat(Infinity);
-      const els = flat.filter(React.isValidElement);
-      if (els.length >= 2 && els.some(e => HINT_RE.test(label(e)))) {
-        if (els.some(e => e.key === MARK)) return true;
-        if (!logged) { logged = true; console.log(TAG, "container achado:", els.map(label).join(" , ")); }
-        const copy = flat.slice();
-        const lastEl = copy.map(x => React.isValidElement(x)).lastIndexOf(true);
-        copy.splice(lastEl < 0 ? copy.length : lastEl, 0, h(ImagoButton, { key: MARK }));
-        props.children = copy;
-        return true;
-      }
-      for (const k of flat) if (inject(k)) return true;
-    } else if (kids && inject(kids)) return true;
-    return false;
-  }
-
-  function wrapExport(holder, key) {
-    const orig = holder[key];
-    console.log(TAG, "candidato:", key);
-    const wrapped = function (...args) {
-      const res = orig.apply(this, args);
-      try { inject(res); } catch (e) { console.error(TAG, "inject falhou", e); }
-      return res;
-    };
-    Object.assign(wrapped, orig);
-    try { holder[key] = wrapped; }
-    catch { try { Object.defineProperty(holder, key, { value: wrapped, configurable: true, writable: true }); } catch { return false; } }
-    unpatches.push(() => { try { holder[key] = orig; } catch {} });
-    return true;
+  // chamado para todo elemento criado; só olha containers pequenos com filhos-elemento
+  function onElement(ret) {
+    if (!ret || !ret.props) return ret;
+    const kids = ret.props.children;
+    if (!Array.isArray(kids) || kids.length < 2 || kids.length > 8) return ret;
+    let els = 0;
+    for (let i = 0; i < kids.length; i++) if (React.isValidElement(kids[i])) els++;
+    if (els < 2) return ret;
+    const own = label(ret);
+    const labels = kids.map(k => (React.isValidElement(k) ? label(k) : ""));
+    const hinted = labels.some(l => HINT_RE.test(l));
+    const target = TARGET_RE.test(own);
+    if (/ChatInput/i.test(own)) note("ChatInput: " + own, labels.join(" , "));
+    if (!hinted && !target) return ret;
+    if (labels.some((l, i) => kids[i] && kids[i].key === MARK)) return ret;
+    note("container: " + own, labels.join(" , "));
+    const copy = kids.slice();
+    let last = -1;
+    for (let i = 0; i < copy.length; i++) if (React.isValidElement(copy[i])) last = i;
+    copy.splice(last < 0 ? copy.length : last, 0, h(ImagoButton, { key: MARK }));
+    try { ret.props.children = copy; return ret; }
+    catch { return React.cloneElement(ret, { children: copy }); }
   }
 
   function hook() {
     let n = 0;
-    // 1) caminho direto
-    for (const name of ["ChatInputActions", "ChatInputButtons"]) {
-      try {
-        const mod = findByName(name, false);
-        if (mod && typeof mod.default === "function") {
-          const un = patcher.after("default", mod, (_, ret) => { try { inject(ret); } catch (e) { console.error(TAG, e); } });
-          unpatches.push(un); n++;
-          console.log(TAG, "patch direto:", name);
-        }
-      } catch {}
-    }
-    if (n) return n;
-    // 2) varredura dos módulos já inicializados
-    const mods = window.modules || {};
-    const seen = new Set();
-    for (const id in mods) {
-      let ex;
-      try { const m = mods[id]; if (!m || !m.isInitialized) continue; ex = m.publicModule && m.publicModule.exports; } catch { continue; }
-      if (!ex) continue;
-      for (const holder of [ex, ex.default]) {
-        if (!holder || (typeof holder !== "object" && typeof holder !== "function")) continue;
-        let keys = [];
-        try { keys = Object.keys(holder); } catch {}
-        for (const key of keys) {
-          let v; try { v = holder[key]; } catch { continue; }
-          if (typeof v !== "function" || seen.has(v)) continue;
-          if (!(TARGET_RE.test(key) || TARGET_RE.test(v.displayName || ""))) continue;
-          seen.add(v);
-          if (wrapExport(holder, key)) n++;
-        }
+    const jsxr = findByProps("jsx", "jsxs");
+    if (jsxr) {
+      for (const fn of ["jsx", "jsxs"]) {
+        try { unpatches.push(patcher.after(fn, jsxr, (_, ret) => { try { return onElement(ret); } catch { return ret; } })); n++; } catch (e) { console.error(TAG, e); }
       }
     }
+    try { unpatches.push(patcher.after("createElement", React, (_, ret) => { try { return onElement(ret); } catch { return ret; } })); n++; } catch {}
+    console.log(TAG, "hooks:", n);
     return n;
   }
 
@@ -180,28 +150,28 @@
         autoCapitalize: "none", autoCorrect: false,
         style: { color: "#fff", backgroundColor: "#2b2d31", borderRadius: 10, padding: 10 }
       }));
+    const [txt, setTxt] = useState("");
+    const dump = () => {
+      const lines = [];
+      dbg.forEach((v, k) => lines.push(k + "\n  -> " + v));
+      setTxt(lines.length ? lines.join("\n\n") : "Nada coletado. Abra um chat, digite algo e volte aqui.");
+    };
     return h(View, null,
       input("Imago Key (imk_...)", "apiKey", true),
-      input("Endereço do Imago", "base", false));
+      input("Endereço do Imago", "base", false),
+      h(View, { style: { padding: 12 } },
+        h(Pressable, { onPress: dump, style: { backgroundColor: "#5865f2", borderRadius: 10, padding: 12, alignItems: "center" } },
+          h(Text, { style: { color: "#fff" } }, "Diagnóstico do botão")),
+        txt ? h(Text, { selectable: true, style: { color: "#b5bac1", marginTop: 10, fontSize: 11 } }, txt) : null));
   }
 
-  let timer;
   return {
     onLoad() {
       cfg();
-      let tries = 0;
-      const run = () => {
-        tries++;
-        if (hook() > 0 || tries >= 10) {
-          if (!unpatches.length) console.warn(TAG, "nenhum alvo encontrado para o botão");
-          clearInterval(timer);
-        }
-      };
-      timer = setInterval(run, 2000);
-      run();
+      hook();
+      try { ui.toasts.showToast("Imago carregado"); } catch {}
     },
     onUnload() {
-      clearInterval(timer);
       for (const u of unpatches.splice(0)) { try { u(); } catch {} }
     },
     settings: SettingsPage
